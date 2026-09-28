@@ -107,7 +107,7 @@ class Config:
     DEFAULT_VERBOSE = False
 
     """默认域名"""
-    DOMAINS = ["glados.cloud", "railgun.info"]
+    DOMAINS = ["glados.cloud"]
 
     """兑换计划列表"""
     EXCHANGE_PLANS = {
@@ -212,6 +212,9 @@ class API:
         """获取请求头"""
         return {
             "origin": f"https://{self.domain}",
+            "referer": f"https://{self.domain}/console/checkin",
+            "accept": "application/json, text/plain, */*",
+            "content-type": "application/json;charset=UTF-8",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
         }
 
@@ -284,7 +287,7 @@ class API:
                 result["status"] = "签到成功"
                 result["points"] = points
                 result["message"] = message
-            elif code == CheckinStatus.REPEAT.value:
+            elif code == CheckinStatus.REPEAT.value or "repeat" in message.lower() or "observation logged" in message.lower():
                 self._log("info", LogEmoji.REPEAT, f"{{ code : {code}, message : {message} }}", force=True)
                 result["code"] = CheckinStatus.REPEAT
                 result["status"] = "重复签到"
