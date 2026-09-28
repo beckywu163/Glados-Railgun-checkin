@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import logging
+import sys
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
@@ -540,15 +541,25 @@ def main():
             title, content, log_content = checker.format_results()
             logger.info(f"\n{LogEmoji.END}========== 签到总结 ==========\n{title}\n{log_content}")
 
+            # GitHub Actions 不能只看脚本是否运行完，还要看签到是否真的成功。
+            # “重复签到”代表今天已经签过，属于正常状态；只有真正失败才返回非 0。
+            failed_results = [r for r in checker.results if r.code == CheckinStatus.FAILURE]
+            if failed_results:
+                logger.error(f"{LogEmoji.ERROR} 检测到 {len(failed_results)} 个签到任务失败。请检查 GLADOS_COOKIES 是否过期，以及上方接口错误信息。")
+                raise RuntimeError(f"{len(failed_results)} 个签到任务失败")
+
     except Exception as e:
         logger.error(f"{LogEmoji.ERROR} 主程序执行过程中发生未预期的错误: {e}")
         title, content, log_content = "# 脚本执行出错", str(e), str(e)
+        exit_code = 1
 
     # 4. 发送推送
     logger.info(f"{LogEmoji.START} 步骤 4: 发送推送")
     push_service = PushService(config if "config" in locals() else "")
     push_service.send(title, content)
     logger.info(f"{LogEmoji.END} 签到完成")
+    if locals().get("exit_code", 0):
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":
